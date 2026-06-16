@@ -101,6 +101,10 @@ type Client interface {
 	// evidence) is returned verbatim. The provider never inspects or modifies
 	// either payload.
 	AttestationQuote(ctx context.Context, lID mtypes.LeaseID, requestBody []byte) ([]byte, int, error)
+
+	// DetectTEEPlatform probes K8s node labels to determine the TEE platform
+	// available on the cluster (TDX or SNP). Returns TEEPlatformNone if no CC nodes found.
+	DetectTEEPlatform(ctx context.Context) ctypes.TEEPlatform
 }
 
 func ErrorIsOkToSendToClient(err error) bool {
@@ -319,6 +323,10 @@ func (c *nullClient) PurgeDeclaredIPs(_ context.Context, _ mtypes.LeaseID) error
 
 func (c *nullClient) AttestationQuote(_ context.Context, _ mtypes.LeaseID, _ []byte) ([]byte, int, error) {
 	return nil, 0, errNotImplemented
+}
+
+func (c *nullClient) DetectTEEPlatform(_ context.Context) ctypes.TEEPlatform {
+	return ctypes.TEEPlatformNone
 }
 
 func (c *nullClient) ObserveIPState(_ context.Context) (<-chan cip.ResourceEvent, error) {

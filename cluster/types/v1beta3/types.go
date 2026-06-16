@@ -52,23 +52,22 @@ type LeaseEvent struct {
 	Object              LeaseEventObject `json:"object" yaml:"object"`
 }
 
-// TEEType represents a validated TEE technology identifier.
-// Only the constants defined below are valid values.
+// TEEType represents a validated TEE capability identifier.
+// The provider determines the actual TEE technology (AMD SEV-SNP or Intel TDX)
+// at deployment time based on node capabilities.
 type TEEType string
 
 const (
-	TEETypeNone      TEEType = ""
-	TEETypeSEVSNP    TEEType = "sev-snp"
-	TEETypeSEVSNPGPU TEEType = "sev-snp-gpu"
-	TEETypeTDX       TEEType = "tdx"
-	TEETypeTDXGPU    TEEType = "tdx-gpu"
+	TEETypeNone   TEEType = ""
+	TEETypeCPU    TEEType = "cpu"
+	TEETypeCPUGPU TEEType = "cpu-gpu"
 )
 
 // ParseTEEType validates a raw string and returns the corresponding TEEType.
 // Returns TEETypeNone for empty strings. Returns an error for unknown values.
 func ParseTEEType(s string) (TEEType, error) {
 	switch TEEType(s) {
-	case TEETypeNone, TEETypeSEVSNP, TEETypeSEVSNPGPU, TEETypeTDX, TEETypeTDXGPU:
+	case TEETypeNone, TEETypeCPU, TEETypeCPUGPU:
 		return TEEType(s), nil
 	default:
 		return TEETypeNone, fmt.Errorf("unknown TEE type: %q", s)
@@ -78,9 +77,22 @@ func ParseTEEType(s string) (TEEType, error) {
 // IsCC returns true if this TEE type represents a confidential compute workload.
 func (t TEEType) IsCC() bool { return t != TEETypeNone }
 
+// IsGPU returns true if this TEE type requires GPU confidential compute.
+func (t TEEType) IsGPU() bool { return t == TEETypeCPUGPU }
+
+// TEEPlatform represents the detected TEE platform on the cluster nodes.
+type TEEPlatform string
+
+const (
+	TEEPlatformNone TEEPlatform = ""
+	TEEPlatformTDX  TEEPlatform = "tdx"
+	TEEPlatformSNP  TEEPlatform = "snp"
+)
+
 type InventoryOptions struct {
-	DryRun  bool
-	TEEType TEEType
+	DryRun      bool
+	TEEType     TEEType
+	TEEPlatform TEEPlatform // detected at startup from node labels
 }
 
 type InventoryOption func(*InventoryOptions) *InventoryOptions
@@ -95,6 +107,13 @@ func WithDryRun() InventoryOption {
 func WithTEEType(t TEEType) InventoryOption {
 	return func(opts *InventoryOptions) *InventoryOptions {
 		opts.TEEType = t
+		return opts
+	}
+}
+
+func WithTEEPlatform(t TEEPlatform) InventoryOption {
+	return func(opts *InventoryOptions) *InventoryOptions {
+		opts.TEEPlatform = t
 		return opts
 	}
 }

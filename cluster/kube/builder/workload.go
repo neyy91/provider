@@ -50,30 +50,21 @@ func IsTDXRuntimeClass(rc string) bool {
 	return rc == RuntimeClassKataQemuTDX || rc == RuntimeClassKataQemuNvidiaGPUTDX
 }
 
-// TEETypeForRuntimeClass returns the TEE type string for a given CC runtime class.
-func TEETypeForRuntimeClass(rc string) string {
-	switch {
-	case IsSNPRuntimeClass(rc):
-		return TEETypeAMDSEVSNP
-	case IsTDXRuntimeClass(rc):
-		return TEETypeIntelTDX
-	default:
-		return ""
-	}
-}
-
-// RuntimeClassForTEEType maps an SDL TEE type to the corresponding Kata runtime class.
-// The TEE type values come from the SDL tee.type enum (sev-snp, sev-snp-gpu, tdx, tdx-gpu).
-func RuntimeClassForTEEType(teeType string) string {
-	switch teeType {
-	case "sev-snp":
-		return RuntimeClassKataQemuSNP
-	case "sev-snp-gpu":
-		return RuntimeClassKataQemuNvidiaGPUSNP
+// RuntimeClassForTEEType maps a TEE type ("cpu", "cpu-gpu") to the corresponding
+// Kata runtime class using the detected TEE platform ("tdx" or "snp").
+func RuntimeClassForTEEType(teeType string, teePlatform string) string {
+	isGPU := teeType == "cpu-gpu"
+	switch teePlatform {
 	case "tdx":
+		if isGPU {
+			return RuntimeClassKataQemuNvidiaGPUTDX
+		}
 		return RuntimeClassKataQemuTDX
-	case "tdx-gpu":
-		return RuntimeClassKataQemuNvidiaGPUTDX
+	case "snp":
+		if isGPU {
+			return RuntimeClassKataQemuNvidiaGPUSNP
+		}
+		return RuntimeClassKataQemuSNP
 	default:
 		return ""
 	}

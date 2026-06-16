@@ -73,11 +73,6 @@ const (
 )
 
 const (
-	TEETypeAMDSEVSNP = "amd-sev-snp"
-	TEETypeIntelTDX  = "intel-tdx"
-)
-
-const (
 	envVarAkashGroupSequence         = "AKASH_GROUP_SEQUENCE"
 	envVarAkashDeploymentSequence    = "AKASH_DEPLOYMENT_SEQUENCE"
 	envVarAkashOrderSequence         = "AKASH_ORDER_SEQUENCE"

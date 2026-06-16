@@ -11,6 +11,7 @@ import (
 	ajwt "pkg.akt.dev/go/util/jwt"
 
 	"github.com/akash-network/provider/cluster"
+	gwutils "github.com/akash-network/provider/gateway/utils"
 )
 
 type grpcLeaseV1 struct {
@@ -44,16 +45,16 @@ func (s *grpcLeaseV1) AttestationQuote(ctx context.Context, req *leasev1.Attesta
 
 	respBody, httpStatus, err := s.cclient.AttestationQuote(ctx, leaseID, body)
 	if err != nil {
-		return nil, status.Errorf(httpToGRPCCode(httpStatus), "attestation quote: %v", err)
+		return nil, status.Errorf(gwutils.HTTPToGRPCCode(httpStatus), "attestation quote: %v", err)
 	}
 
 	// Parse the sidecar JSON response into the proto response.
 	var sidecarResp struct {
-		Report     string `json:"report"`
-		CertChain  string `json:"cert_chain"`
-		TEEType    string `json:"tee_type"`
-		Auxblob    string `json:"auxblob"`
-		GPUReports []struct {
+		Report      string `json:"report"`
+		CertChain   string `json:"cert_chain"`
+		TEEPlatform string `json:"tee_platform"`
+		Auxblob     string `json:"auxblob"`
+		GPUReports  []struct {
 			DeviceIndex uint32 `json:"device_index"`
 			Report      string `json:"report"`
 		} `json:"gpu_reports"`
@@ -65,11 +66,11 @@ func (s *grpcLeaseV1) AttestationQuote(ctx context.Context, req *leasev1.Attesta
 	}
 
 	resp := &leasev1.AttestationQuoteResponse{
-		Report:    sidecarResp.Report,
-		CertChain: sidecarResp.CertChain,
-		TeeType:   sidecarResp.TEEType,
-		Auxblob:   sidecarResp.Auxblob,
-		TlsBound:  sidecarResp.TLSBound,
+		Report:      sidecarResp.Report,
+		CertChain:   sidecarResp.CertChain,
+		TeePlatform: sidecarResp.TEEPlatform,
+		Auxblob:     sidecarResp.Auxblob,
+		TlsBound:    sidecarResp.TLSBound,
 	}
 
 	for _, gr := range sidecarResp.GPUReports {
@@ -80,17 +81,4 @@ func (s *grpcLeaseV1) AttestationQuote(ctx context.Context, req *leasev1.Attesta
 	}
 
 	return resp, nil
-}
-
-func httpToGRPCCode(httpStatus int) codes.Code {
-	switch {
-	case httpStatus == 404:
-		return codes.NotFound
-	case httpStatus == 502:
-		return codes.Unavailable
-	case httpStatus >= 400 && httpStatus < 500:
-		return codes.InvalidArgument
-	default:
-		return codes.Internal
-	}
 }

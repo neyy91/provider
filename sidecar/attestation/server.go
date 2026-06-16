@@ -34,10 +34,10 @@ type GPUReportEntry struct {
 // Contains raw, hardware-signed attestation evidence.
 // The provider never produces or signs this — it comes from the PSP.
 type QuoteResponse struct {
-	Report    string `json:"report"`     // base64 raw SNP/TDX attestation report
-	CertChain string `json:"cert_chain"` // base64 VCEK cert chain (may be empty)
-	TEEType   string `json:"tee_type"`   // "snp", "tdx", "snp-gpu", "tdx-gpu"
-	AuxBlob   string `json:"auxblob"`    // empty on NVIDIA-patched kernel
+	Report      string `json:"report"`       // base64 raw SNP/TDX attestation report
+	CertChain   string `json:"cert_chain"`   // base64 VCEK cert chain (may be empty)
+	TEEPlatform string `json:"tee_platform"` // "snp", "tdx", "snp-gpu", "tdx-gpu"
+	AuxBlob     string `json:"auxblob"`      // empty on NVIDIA-patched kernel
 
 	// GPUReports contains per-device attestation evidence for ALL CC-capable GPUs.
 	// Each entry includes the device index and its hardware-signed report.
@@ -50,7 +50,7 @@ type QuoteResponse struct {
 
 // InfoResponse is the response body for GET /info.
 type InfoResponse struct {
-	TEEType         string `json:"tee_type"`
+	TEEPlatform     string `json:"tee_platform"`
 	ProtocolVersion string `json:"protocol_version"`
 
 	// GPUAvailable indicates whether GPU CC attestation is available.
@@ -115,11 +115,11 @@ func quoteHandler(provider tee.Provider, binding *TLSBinding) http.HandlerFunc {
 		}
 
 		resp := QuoteResponse{
-			Report:    base64.StdEncoding.EncodeToString(report.Report),
-			CertChain: base64.StdEncoding.EncodeToString(report.CertChain),
-			TEEType:   provider.Name(),
-			AuxBlob:   base64.StdEncoding.EncodeToString(report.AuxBlob),
-			TLSBound:  tlsBound,
+			Report:      base64.StdEncoding.EncodeToString(report.Report),
+			CertChain:   base64.StdEncoding.EncodeToString(report.CertChain),
+			TEEPlatform: provider.Name(),
+			AuxBlob:     base64.StdEncoding.EncodeToString(report.AuxBlob),
+			TLSBound:    tlsBound,
 		}
 
 		if len(report.GPUReports) > 0 {
@@ -142,7 +142,7 @@ func infoHandler(provider tee.Provider, binding *TLSBinding) http.HandlerFunc {
 		name := provider.Name()
 		gpuAvailable := name == tee.NameSNPGPU || name == tee.NameTDXGPU
 		resp := InfoResponse{
-			TEEType:         name,
+			TEEPlatform:     name,
 			ProtocolVersion: protocolVersion,
 			GPUAvailable:    gpuAvailable,
 			TLSPublicKey:    base64.StdEncoding.EncodeToString(binding.PubKeyDER),

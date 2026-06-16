@@ -233,6 +233,8 @@ spec:
                                         format: uint64
                               attestation_disabled:
                                 type: boolean
+                              tee_type:
+                                type: string
                           credentials:
                             type: object
                             nullable: true

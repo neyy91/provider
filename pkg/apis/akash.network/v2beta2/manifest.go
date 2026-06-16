@@ -113,6 +113,7 @@ type SchedulerParams struct {
 	RuntimeClass        string              `json:"runtime_class"`
 	Resources           *SchedulerResources `json:"resources,omitempty"`
 	AttestationDisabled bool                `json:"attestation_disabled,omitempty"`
+	TEEType             string              `json:"tee_type,omitempty"`
 }
 
 type ClusterSettings struct {
@@ -321,10 +322,7 @@ func manifestServiceFromProvider(ams mani.Service, schedulerParams *SchedulerPar
 		if schedulerParams == nil {
 			schedulerParams = &SchedulerParams{}
 		}
-		rc := runtimeClassForTEEType(ams.Params.TEE.Type)
-		if rc != "" {
-			schedulerParams.RuntimeClass = rc
-		}
+		schedulerParams.TEEType = ams.Params.TEE.Type
 		if !ams.Params.TEE.Attestation {
 			schedulerParams.AttestationDisabled = true
 		}
@@ -433,22 +431,5 @@ func manifestServiceExposeFromAkash(amse mani.ServiceExpose) ManifestServiceExpo
 			NextTimeout: amse.HTTPOptions.NextTimeout,
 			NextCases:   amse.HTTPOptions.NextCases,
 		},
-	}
-}
-
-// runtimeClassForTEEType maps SDL TEE type to Kata runtime class.
-// Duplicated from builder package to avoid import cycle.
-func runtimeClassForTEEType(teeType string) string {
-	switch teeType {
-	case "sev-snp":
-		return "kata-qemu-snp"
-	case "sev-snp-gpu":
-		return "kata-qemu-nvidia-gpu-snp"
-	case "tdx":
-		return "kata-qemu-tdx"
-	case "tdx-gpu":
-		return "kata-qemu-nvidia-gpu-tdx"
-	default:
-		return ""
 	}
 }

@@ -12,11 +12,14 @@ import (
 	mtypes "pkg.akt.dev/go/node/market/v1"
 
 	"github.com/akash-network/provider/cluster/kube/builder"
+	ctypes "github.com/akash-network/provider/cluster/types/v1beta3"
 )
 
 const (
 	attestationSidecarContainerName = "akash-attestation-sidecar"
 	attestationSidecarPort          = "8790"
+	intelTDXLabelKey                = "intel.feature.node.kubernetes.io/tdx"
+	amdSNPLabelKey                  = "amd.feature.node.kubernetes.io/snp"
 )
 
 // AttestationQuote forwards an attestation quote request to the sidecar running
@@ -81,4 +84,25 @@ func (c *client) findAttestationSidecarPod(ctx context.Context, namespace string
 	}
 
 	return "", fmt.Errorf("no running pod with attestation sidecar in namespace %s", namespace)
+}
+
+// DetectTEEPlatform scans K8s nodes to determine the TEE platform available.
+// Returns TEEPlatformTDX if any node has the TDX label, TEEPlatformSNP for SNP,
+// or TEEPlatformNone if no CC-capable nodes are found.
+func (c *client) DetectTEEPlatform(ctx context.Context) ctypes.TEEPlatform {
+	nodes, err := c.kc.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return ctypes.TEEPlatformNone
+	}
+
+	for _, node := range nodes.Items {
+		if node.Labels[intelTDXLabelKey] == "true" {
+			return ctypes.TEEPlatformTDX
+		}
+		if node.Labels[amdSNPLabelKey] == "true" {
+			return ctypes.TEEPlatformSNP
+		}
+	}
+
+	return ctypes.TEEPlatformNone
 }
